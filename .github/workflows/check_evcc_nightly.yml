@@ -12,7 +12,7 @@ jobs:
       id: check
       run: |
         NIGHTLY_RUN=$(curl -s -H "Authorization: token ${{ secrets.API_TOKEN }}" \
-        "https://api.github.com/repos/evcc/evcc/actions/workflows/nightly.yml/runs?status=success&per_page=1" \
+        "https://api.github.com/repos/evcc-io/evcc/actions/workflows/nightly.yml/runs?status=success&per_page=1" \
         | jq -r '.workflow_runs[0]')
         
         NIGHTLY_RUN_ID=$(echo $NIGHTLY_RUN | jq -r '.id')
