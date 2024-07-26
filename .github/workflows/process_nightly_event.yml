@@ -11,7 +11,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-
+        with:
+          token: ${{ secrets.API_TOKEN }}
       - name: Retrieve previously used Nightly Run IDs
         run: |
           if [ -f .github/nightly_run_ids.txt ]; then
@@ -40,8 +41,8 @@ jobs:
       - name: Commit and push the updated Nightly Run IDs
         if: steps.check-id.conclusion == 'success'
         run: |
-          git config --local user.email "actions@github.com"
-          git config --local user.name "GitHub Actions"
+          git config --local user.email "ReneNulschDE.github@Nulsch.de"
+          git config --local user.name "ReneNulschDE"
           git add .github/nightly_run_ids.txt
           git commit -m "Update nightly_run_ids.txt"
           git push
