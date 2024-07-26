@@ -1,8 +1,6 @@
 name: Check Nightly Workflow
 
-on:
-  schedule:
-    - cron: '*/10 * * * *' # Alle 10 Minuten prüfen
+
 
 jobs:
   check-nightly:
