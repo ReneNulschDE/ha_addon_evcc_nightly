@@ -8,11 +8,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Install jq
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y jq
-
     - name: Check Nightly Workflow Status
       id: check
       run: |
@@ -24,8 +19,10 @@ jobs:
         NIGHTLY_RUN_CONCLUSION=$(echo $NIGHTLY_RUN | jq -r '.conclusion')
 
         if [ "$NIGHTLY_RUN_CONCLUSION" == "success" ]; then
+          echo "NIGHTLY_RUN_ID $NIGHTLY_RUN_ID"
           echo "NIGHTLY_RUN_ID=$NIGHTLY_RUN_ID" >> $GITHUB_ENV
         else
+          echo "NIGHTLY_RUN_ID=null"
           echo "NIGHTLY_RUN_ID=null" >> $GITHUB_ENV
         fi
 
