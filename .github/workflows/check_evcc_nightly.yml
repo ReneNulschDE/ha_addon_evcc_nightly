@@ -1,6 +1,7 @@
 name: Check Nightly Workflow
 
-
+on:
+  workflow_dispatch:
 
 jobs:
   check-nightly:
