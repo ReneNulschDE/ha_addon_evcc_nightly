@@ -14,32 +14,43 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y jq
 
-    - name: Checkout repository
-      uses: actions/checkout@v2
-
     - name: Check Nightly Workflow Status
       id: check
       run: |
-        NIGHTLY_RUN=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-        "https://api.github.com/repos/<quell-benutzername>/<quell-repository>/actions/workflows/nightly.yml/runs?status=success&per_page=1" \
+        NIGHTLY_RUN=$(curl -s -H "Authorization: token ${{ secrets.API_TOKEN }}" \
+        "https://api.github.com/repos/evcc/evcc/actions/workflows/nightly.yml/runs?status=success&per_page=1" \
         | jq -r '.workflow_runs[0]')
         
         NIGHTLY_RUN_ID=$(echo $NIGHTLY_RUN | jq -r '.id')
         NIGHTLY_RUN_CONCLUSION=$(echo $NIGHTLY_RUN | jq -r '.conclusion')
 
         if [ "$NIGHTLY_RUN_CONCLUSION" == "success" ]; then
-          echo "Nightly workflow succeeded. Run ID: $NIGHTLY_RUN_ID"
-          echo "::set-output name=nightly_run_id::$NIGHTLY_RUN_ID"
+          echo "NIGHTLY_RUN_ID=$NIGHTLY_RUN_ID" >> $GITHUB_ENV
         else
-          echo "Nightly workflow not succeeded or no recent run found."
-          echo "::set-output name=nightly_run_id::null"
+          echo "NIGHTLY_RUN_ID=null" >> $GITHUB_ENV
+        fi
+
+    - name: Retrieve previously used Nightly Run IDs
+      id: get-previous-runs
+      run: |
+        if [ -f .github/nightly_run_ids.txt ]; then
+          cat .github/nightly_run_ids.txt
+        else
+          touch .github/nightly_run_ids.txt
         fi
 
     - name: Trigger own workflow if Nightly succeeded and ID not used
-      if: steps.check.outputs.nightly_run_id != 'null'
+      if: env.NIGHTLY_RUN_ID != 'null'
       run: |
-        NIGHTLY_RUN_ID=${{ steps.check.outputs.nightly_run_id }}
-        echo $NIGHTLY_RUN_ID >> .github/nightly_run_ids.txt
-        curl -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-        -d '{"event_type":"nightly_completed", "client_payload": {"nightly_run_id": "'$NIGHTLY_RUN_ID'"}}' \
-        https://api.github.com/repos/<dein-benutzername>/<dein-repository>/dispatches
+        if ! grep -q $NIGHTLY_RUN_ID .github/nightly_run_ids.txt; then
+          echo $NIGHTLY_RUN_ID >> .github/nightly_run_ids.txt
+          curl -X POST -H "Authorization: token ${{ secrets.API_TOKEN }}" \
+          -d '{"event_type":"nightly_completed", "client_payload": {"nightly_run_id": "'$NIGHTLY_RUN_ID'"}}' \
+          https://api.github.com/repos/renenulschde/ha_addon_evcc_nightly/dispatches
+        fi
+
+    - name: Save used Nightly Run IDs
+      uses: actions/upload-artifact@v2
+      with:
+        name: nightly_run_ids
+        path: .github/nightly_run_ids.txt
