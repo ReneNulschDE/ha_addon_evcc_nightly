@@ -29,27 +29,10 @@ jobs:
           echo "NIGHTLY_RUN_ID=null" >> $GITHUB_ENV
         fi
 
-    - name: Retrieve previously used Nightly Run IDs
-      id: get-previous-runs
-      run: |
-        if [ -f .github/nightly_run_ids.txt ]; then
-          cat .github/nightly_run_ids.txt
-        else
-          touch .github/nightly_run_ids.txt
-        fi
-
     - name: Trigger own workflow if Nightly succeeded and ID not used
       if: env.NIGHTLY_RUN_ID != 'null'
       run: |
-        if ! grep -q $NIGHTLY_RUN_ID .github/nightly_run_ids.txt; then
-          echo $NIGHTLY_RUN_ID >> .github/nightly_run_ids.txt
-          curl -X POST -H "Authorization: token ${{ secrets.API_TOKEN }}" \
-          -d '{"event_type":"nightly_completed", "client_payload": {"nightly_run_id": "'$NIGHTLY_RUN_ID'"}}' \
-          https://api.github.com/repos/renenulschde/ha_addon_evcc_nightly/dispatches
-        fi
+        curl -X POST -H "Authorization: token ${{ secrets.API_TOKEN }}" \
+        -d '{"event_type":"nightly_completed", "client_payload": {"nightly_run_id": "'$NIGHTLY_RUN_ID'"}}' \
+        https://api.github.com/repos/renenulschde/ha_addon_evcc_nightly/dispatches
 
-    - name: Save used Nightly Run IDs
-      uses: actions/upload-artifact@v2
-      with:
-        name: nightly_run_ids
-        path: .github/nightly_run_ids.txt
