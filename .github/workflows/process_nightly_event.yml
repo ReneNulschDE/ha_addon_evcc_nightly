@@ -27,19 +27,20 @@ jobs:
           NIGHTLY_RUN_ID=${{ github.event.client_payload.nightly_run_id }}
           if grep -q $NIGHTLY_RUN_ID .github/nightly_run_ids.txt; then
             echo "Nightly Run ID $NIGHTLY_RUN_ID already used. Exiting."
-            exit 1
+            echo "NIGHTLY_RUN_ID_EXISTS=1" >> $GITHUB_ENV
           else
             echo "Nightly Run ID $NIGHTLY_RUN_ID not used yet."
+            echo "NIGHTLY_RUN_ID_EXISTS=0" >> $GITHUB_ENV
           fi
 
       - name: Append Nightly Run ID to used list
-        if: steps.check-id.conclusion == 'success'
+        if: steps.check-id.conclusion == 'success' && env.NIGHTLY_RUN_ID_EXISTS == 0
         run: |
           NIGHTLY_RUN_ID=${{ github.event.client_payload.nightly_run_id }}
           echo $NIGHTLY_RUN_ID >> .github/nightly_run_ids.txt
 
       - name: Commit and push the updated Nightly Run IDs
-        if: steps.check-id.conclusion == 'success'
+        if: steps.check-id.conclusion == 'success' && env.NIGHTLY_RUN_ID_EXISTS == 0
         run: |
           git config --local user.email "ReneNulschDE.github@Nulsch.de"
           git config --local user.name "ReneNulschDE"
@@ -48,7 +49,7 @@ jobs:
           git push
 
       - name: Run custom workflow steps
-        if: steps.check-id.conclusion == 'success'
+        if: steps.check-id.conclusion == 'success' && env.NIGHTLY_RUN_ID_EXISTS == 0
         run: |
           echo "Nightly workflow completed successfully in the source repository!"
           # Füge hier deine benutzerdefinierten Schritte hinzu
