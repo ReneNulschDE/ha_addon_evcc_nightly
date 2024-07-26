@@ -1,0 +1,54 @@
+name: Triggered by Nightly Completion
+
+on:
+  repository_dispatch:
+    types: [nightly_completed]
+
+jobs:
+  run-on-dispatch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Retrieve previously used Nightly Run IDs
+        run: |
+          if [ -f .github/nightly_run_ids.txt ]; then
+            cat .github/nightly_run_ids.txt
+          else
+            touch .github/nightly_run_ids.txt
+          fi
+
+      - name: Check if Nightly Run ID is already used
+        id: check-id
+        run: |
+          NIGHTLY_RUN_ID=${{ github.event.client_payload.nightly_run_id }}
+          if grep -q $NIGHTLY_RUN_ID .github/nightly_run_ids.txt; then
+            echo "Nightly Run ID $NIGHTLY_RUN_ID already used. Exiting."
+            exit 1
+          else
+            echo "Nightly Run ID $NIGHTLY_RUN_ID not used yet."
+          fi
+
+      - name: Append Nightly Run ID to used list
+        if: steps.check-id.conclusion == 'success'
+        run: |
+          NIGHTLY_RUN_ID=${{ github.event.client_payload.nightly_run_id }}
+          echo $NIGHTLY_RUN_ID >> .github/nightly_run_ids.txt
+
+      - name: Commit and push the updated Nightly Run IDs
+        if: steps.check-id.conclusion == 'success'
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add .github/nightly_run_ids.txt
+          git commit -m "Update nightly_run_ids.txt"
+          git push
+
+      - name: Run custom workflow steps
+        if: steps.check-id.conclusion == 'success'
+        run: |
+          echo "Nightly workflow completed successfully in the source repository!"
+          # Füge hier deine benutzerdefinierten Schritte hinzu
+          # Zum Beispiel: ein Skript ausführen, Tests laufen lassen, etc.
