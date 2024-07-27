@@ -1,47 +1,48 @@
 name: Check Nightly Workflow
 
 on:
-  workflow_dispatch:
+  schedule:
+    - cron: "*/30 * * * *" # Alle 10 Minuten prüfen
 
 jobs:
   check-nightly:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Check Nightly Workflow Status
-      id: check
-      run: |
-        NIGHTLY_RUN=$(curl -s -H "Authorization: token ${{ secrets.API_TOKEN }}" \
-        "https://api.github.com/repos/evcc-io/evcc/actions/workflows/nightly.yml/runs?status=success&per_page=1" \
-        | jq -r '.workflow_runs[0]')
-        
-        NIGHTLY_RUN_ID=$(echo $NIGHTLY_RUN | jq -r '.id')
-        NIGHTLY_RUN_CONCLUSION=$(echo $NIGHTLY_RUN | jq -r '.conclusion')
+      - uses: actions/checkout@v4
+      - name: Check Nightly Workflow Status
+        id: check
+        run: |
+          NIGHTLY_RUN=$(curl -s -H "Authorization: token ${{ secrets.API_TOKEN }}" \
+          "https://api.github.com/repos/evcc-io/evcc/actions/workflows/nightly.yml/runs?status=success&per_page=1" \
+          | jq -r '.workflow_runs[0]')
 
-        if [ "$NIGHTLY_RUN_CONCLUSION" == "success" ]; then
-          echo "NIGHTLY_RUN_ID $NIGHTLY_RUN_ID"
-          echo "NIGHTLY_RUN_ID=$NIGHTLY_RUN_ID" >> $GITHUB_ENV
-        else
-          echo "NIGHTLY_RUN_ID=null"
-          echo "NIGHTLY_RUN_ID=null" >> $GITHUB_ENV
-        fi
+          NIGHTLY_RUN_ID=$(echo $NIGHTLY_RUN | jq -r '.id')
+          NIGHTLY_RUN_CONCLUSION=$(echo $NIGHTLY_RUN | jq -r '.conclusion')
 
-    - name: Retrieve previously used Nightly Run IDs
-      id: get-previous-runs
-      run: |
-        if [ -f .github/nightly_run_ids.txt ]; then
-          cat .github/nightly_run_ids.txt
-        else
-          touch .github/nightly_run_ids.txt
-        fi
+          if [ "$NIGHTLY_RUN_CONCLUSION" == "success" ]; then
+            echo "NIGHTLY_RUN_ID $NIGHTLY_RUN_ID"
+            echo "NIGHTLY_RUN_ID=$NIGHTLY_RUN_ID" >> $GITHUB_ENV
+          else
+            echo "NIGHTLY_RUN_ID=null"
+            echo "NIGHTLY_RUN_ID=null" >> $GITHUB_ENV
+          fi
 
-    - name: Trigger own workflow if Nightly succeeded and ID not used
-      if: env.NIGHTLY_RUN_ID != 'null'
-      run: |
-        if ! grep -q $NIGHTLY_RUN_ID .github/nightly_run_ids.txt; then
-          echo $NIGHTLY_RUN_ID >> .github/nightly_run_ids.txt
-          curl -X POST -H "Authorization: token ${{ secrets.API_TOKEN }}" \
-          -d '{"event_type":"nightly_completed", "client_payload": {"nightly_run_id": "'$NIGHTLY_RUN_ID'"}}' \
-          https://api.github.com/repos/renenulschde/ha_addon_evcc_nightly/dispatches
-        fi
+      - name: Retrieve previously used Nightly Run IDs
+        id: get-previous-runs
+        run: |
+          if [ -f .github/nightly_run_ids.txt ]; then
+            cat .github/nightly_run_ids.txt
+          else
+            touch .github/nightly_run_ids.txt
+          fi
+
+      - name: Trigger own workflow if Nightly succeeded and ID not used
+        if: env.NIGHTLY_RUN_ID != 'null'
+        run: |
+          if ! grep -q $NIGHTLY_RUN_ID .github/nightly_run_ids.txt; then
+            echo $NIGHTLY_RUN_ID >> .github/nightly_run_ids.txt
+            curl -X POST -H "Authorization: token ${{ secrets.API_TOKEN }}" \
+            -d '{"event_type":"nightly_completed", "client_payload": {"nightly_run_id": "'$NIGHTLY_RUN_ID'"}}' \
+            https://api.github.com/repos/renenulschde/ha_addon_evcc_nightly/dispatches
+          fi
