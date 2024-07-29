@@ -46,3 +46,11 @@ jobs:
             -d '{"event_type":"nightly_completed", "client_payload": {"nightly_run_id": "'$NIGHTLY_RUN_ID'"}}' \
             https://api.github.com/repos/renenulschde/ha_addon_evcc_nightly/dispatches
           fi
+      - name: Delete workflow runs
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 0
+          keep_minimum_runs: 1
+          delete_workflow_pattern: check_evcc_nightly.yml
